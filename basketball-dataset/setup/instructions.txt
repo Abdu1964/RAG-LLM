@@ -1,0 +1,12 @@
+Explore the dataset using queries. Examples:
+1. Find the top-scoring player against the Nets:
+   MATCH (p:PLAYER)-[r:PLAYED_AGAINST]->(t:TEAM {name: "Brooklyn Nets"})
+   RETURN p.name, r.points ORDER BY r.points DESC LIMIT 1;
+
+2. List all players coached by Doc Rivers:
+   MATCH (c:COACH {name: "Doc Rivers"})-[:COACHES]->(p:PLAYER)
+   RETURN p.name;
+
+3. Find all teams LeBron James played against:
+   MATCH (p:PLAYER {name: "LeBron James"})-[:PLAYED_AGAINST]->(t:TEAM)
+   RETURN t.name;
