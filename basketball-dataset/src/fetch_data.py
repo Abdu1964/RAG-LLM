@@ -38,7 +38,10 @@ def execute_cypher_query(query, commit=False):
                 data = [record.data() for record in result]
                 
                 # Print the fetched data to check if it is empty or not
-                print("Fetched Data:", data)  # Debug: print the data fetched
+                print("================================1.FETCH DATA========================================================")
+                print("========================================================================================================")
+                print("I.Fetched Data:", data)  # Debug: print the data fetched
+                print("=============================================================================================================")
                 if not data:
                     print("No data was returned from the query.")
                 return data
@@ -49,7 +52,7 @@ def execute_cypher_query(query, commit=False):
     finally:
         driver.close()
 
-# Set the correct path to the 'players_and_teams.cypher' file
+#  path to the players_and_teams.cypher' file
 cypher_file_path = os.path.join(os.path.dirname(__file__), '../data/players_and_teams.cypher')
 
 # Read the Cypher query from the file
@@ -62,7 +65,12 @@ execute_cypher_query(cypher_query, commit=True)  # Change to commit=True to save
 fetch_query = """
 MATCH (n)-[r]->(m)
 RETURN n AS start_node, type(r) AS relationship_type, m AS end_node
+
 """
+#MATCH (n) RETURN n, null AS r, null AS m
+#UNION
+#MATCH (n)-[r]->(m) RETURN n, r, m
+
 
 # Fetch the data (no LIMIT, fetch all data)
 fetched_data = execute_cypher_query(fetch_query)
@@ -94,4 +102,7 @@ else:
     grouped_data = transform_and_group_data(fetched_data)
 
     # Print the grouped data to check if the transformation is successful
+    print("======================================================================================================")
+    print("======================================II.GROUP DATA and check if the transformation is successful===============================================")
+    print("======================================================================================================")
     print("Grouped Data:", grouped_data)
