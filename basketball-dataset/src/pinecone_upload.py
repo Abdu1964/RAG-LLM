@@ -26,7 +26,7 @@ index = pinecone_client.Index("pinecone-index-vector-storage")
 upsert_data = []
 for i, embedding in enumerate(embeddings):
     # Creating a unique ID for each embedding (e.g., based on player name)
-    player_id = f"player_{i}"  # Customize this as needed
+    player_id = f"player_{i}"  # Customize this as needed.
     upsert_data.append((player_id, embedding))
 
 # Upload the data to Pinecone
