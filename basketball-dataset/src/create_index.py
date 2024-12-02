@@ -1,53 +1,41 @@
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec
-from neo4j import GraphDatabase
+from pinecone import Pinecone
 import os
+import pickle
+from sentence_transformers import SentenceTransformer  # A popular model for embedding text
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
-
-# Neo4j credentials
-NEO4J_URI = os.getenv("NEO4J_URI")
-NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 # Pinecone credentials
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENV = os.getenv("PINECONE_ENV")
 PINECONE_CLOUD = os.getenv("PINECONE_CLOUD")
 
-
-
-# Check if required variables are loaded
-if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, PINECONE_API_KEY, PINECONE_ENV, PINECONE_CLOUD]):
-    raise ValueError("One or more environment variables are missing. Please check the .env file.")
-
-# Initialize Neo4j driver
-neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
-
 # Initialize Pinecone client
 pinecone_client = Pinecone(api_key=PINECONE_API_KEY)
+index = pinecone_client.Index("pinecone-index-vector-storage")
 
-# Function to create an index in Pinecone
-def create_index(index_name, dimension):
-    existing_indexes = pinecone_client.list_indexes().names()
-    if index_name not in existing_indexes:
-        pinecone_client.create_index(
-            name=index_name,
-            dimension=dimension,
-            metric="cosine",
-            spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_ENV)
-        )
-        print(f"Index '{index_name}' created successfully.")
-    else:
-        print(f"Index '{index_name}' already exists.")
+# Load the Sentence Transformer model (or use any other model to embed your query)
+model = SentenceTransformer('all-MiniLM-L6-v2')  # This is just an example model
 
-#  values
-index_name = "pinecone-index-vector-storage"
-dimension = 384
+# Function to query Pinecone
+def query_pinecone(query, top_k=5):
+    # Transform the query into a vector
+    query_vector = model.encode([query])[0]  # Get the vector for the query
 
-# Create the Pinecone index
-create_index(index_name, dimension)
+    # Query Pinecone for the top_k most similar vectors
+    results = index.query(queries=[query_vector], top_k=top_k)
 
-# Close the Neo4j driver when done
-neo4j_driver.close()
+    return results
+
+# Example: Natural language query
+query = "Who is the highest paid player in the team?"
+
+# Query Pinecone with the NL query
+results = query_pinecone(query)
+
+# Display the results
+print("Query Results:")
+for match in results['matches']:
+    print(f"ID: {match['id']}, Score: {match['score']}")
