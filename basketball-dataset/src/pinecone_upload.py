@@ -12,14 +12,14 @@ PINECONE_ENV = os.getenv("PINECONE_ENV")
 PINECONE_CLOUD = os.getenv("PINECONE_CLOUD")
 
 # Load the embeddings from the pickle file
-with open("../output/embeddings.pkl", "rb") as file:
+with open("../output/vectors.pkl", "rb") as file:
     embeddings = pickle.load(file)
 
 # Initialize Pinecone client
 pinecone_client = Pinecone(api_key=PINECONE_API_KEY)
 
 # Connect to the Pinecone index
-index = pinecone_client.Index("pinecone-index-vector-storage")
+index = pinecone_client.Index("pinecone-index-vector-storage-2")
 
 # Prepare the data for upload (embedding vectors + metadata)
 # Assuming my embeddings are in a list of tuples [(id, vector), ...]

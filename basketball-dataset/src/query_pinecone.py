@@ -1,57 +1,128 @@
-import pinecone
-import numpy as np
 import os
+import numpy as np
 from dotenv import load_dotenv
+from pinecone import Pinecone, ServerlessSpec
+from transformers import AutoTokenizer, AutoModel
+import torch
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize Pinecone with API key and environment from .env
-pinecone_client = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+# Initialize Pinecone instance
+pinecone_client = Pinecone(
+    api_key=os.getenv("PINECONE_API_KEY")
+)
 
-# Initialize the Pinecone index
-index_name = os.getenv("PINECONE_INDEX")
-index = pinecone_client.Index(index_name)
+# Get Pinecone environment and index from environment variables
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENV")
+PINECONE_INDEX = os.getenv("PINECONE_INDEX")
 
-# Set vector dimension and similarity metric (Cosine)
+# Ensure the environment and index are set
+if not PINECONE_ENVIRONMENT or not PINECONE_INDEX:
+    raise ValueError("PINECONE_ENVIRONMENT and PINECONE_INDEX must be set in the .env file.")
+
+# Check if the index exists; if not, create it
+if PINECONE_INDEX not in pinecone_client.list_indexes().names():
+    pinecone_client.create_index(
+        name=PINECONE_INDEX,
+        dimension=384,
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws",
+            region=PINECONE_ENVIRONMENT
+        )
+    )
+
+# Connect to the existing index
+index = pinecone_client.Index(PINECONE_INDEX)
+
+# Constants
 VECTOR_DIMENSION = 384
-SIMILARITY_METRIC = "cosine"
+MAX_DECIMALS = 6  # Reduced decimal precision
+
+def sanitize_vector(vector, max_decimals=MAX_DECIMALS):
+    """
+    Ensures vector values are rounded to the specified decimal precision and converted to float32.
+    """
+    return [float(round(float(value), max_decimals)) for value in vector]
+
+def is_valid_vector(vector):
+    """
+    Checks if a vector contains valid values (no NaN, Inf, or unexpected values).
+    """
+    return np.all(np.isfinite(vector)) and not np.any(np.isnan(vector))
+
+def normalize_vector(vector):
+    """
+    Normalizes a vector so that its magnitude is 1.
+    """
+    vector = np.array(vector, dtype=np.float32)
+    norm = np.linalg.norm(vector)
+    if norm == 0:
+        return vector.tolist()
+    return (vector / norm).tolist()
+
+def get_query_vector(query):
+    """
+    Converts the query into a vector using an embedding model.
+    """
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    
+    # Move model to CPU and set to eval mode
+    model.cpu()
+    model.eval()
+
+    tokens = tokenizer(query, return_tensors="pt", truncation=True, padding=True)
+    
+    with torch.no_grad():
+        output = model(**tokens)
+    
+    # Convert to numpy, then to list
+    query_embedding = output.last_hidden_state.mean(dim=1).squeeze().numpy().astype(np.float32)
+    
+    # Normalize and convert to list
+    query_embedding = normalize_vector(query_embedding)
+    
+    # Validate the vector
+    if not is_valid_vector(query_embedding):
+        raise ValueError("The query vector contains invalid values.")
+    
+    return query_embedding
 
 def query_pinecone(query, top_k=5):
-    # Ensure the query is converted to a vector (if it's not already)
-    query_vector = get_query_vector(query)  # Function to get query vector
-
-    # Debug: Print the query vector to verify its structure
-    print("Query Vector:", query_vector)
-
-    # Validate the query vector
-    if not isinstance(query_vector, list):
-        raise ValueError("The query vector must be a list or numpy array.")
-    
-    if len(query_vector) != VECTOR_DIMENSION:  # Check if the query vector has 384 dimensions
-        raise ValueError(f"The query vector must have {VECTOR_DIMENSION} dimensions, but it has {len(query_vector)}.")
-
-    # Perform the query to Pinecone
+    """
+    Queries Pinecone with a sanitized query vector.
+    """
     try:
-        results = index.query(queries=[query_vector], top_k=top_k, include_metadata=True)
+        query_vector = get_query_vector(query)
+
+        # Validate vector dimension
+        if len(query_vector) != VECTOR_DIMENSION:
+            raise ValueError(f"Query vector must have {VECTOR_DIMENSION} dimensions, but has {len(query_vector)}.")
+
+        # Sanitize the query vector
+        sanitized_query_vector = sanitize_vector(query_vector)
+
+        # Perform the query with vector as a list
+        results = index.query(
+            vector=sanitized_query_vector,  # Changed from queries to vector
+            top_k=top_k,
+            include_metadata=True
+        )
         return results
     except Exception as e:
         print(f"Error querying Pinecone: {e}")
         return None
 
-def get_query_vector(query):
-    # Convert the query into a vector (use my embedding model here)
-    # Example: Generating a random vector
-    query_vector = np.random.rand(VECTOR_DIMENSION).tolist()  # I can Replace with actual query vector logic
-    return query_vector
-
 if __name__ == "__main__":
-    # Sample query for testing
     query = "Who are the top players in the NBA?"
     top_k = 5
 
-    # Query Pinecone and print results
     results = query_pinecone(query, top_k)
-    
+
     if results:
         print("Query Results:", results)
+    else:
+        print("No results found.")
