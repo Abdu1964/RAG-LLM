@@ -15,6 +15,11 @@ PINECONE_CLOUD = os.getenv("PINECONE_CLOUD")
 with open("../output/vectors.pkl", "rb") as file:
     embeddings = pickle.load(file)
 
+with open("../output/sentences_chunks.pkl", "rb") as file:
+    sentences = pickle.load(file)
+
+print(len(sentences), "this is sentences", len(embeddings))
+
 # Initialize Pinecone client
 pinecone_client = Pinecone(api_key=PINECONE_API_KEY)
 
@@ -22,15 +27,16 @@ pinecone_client = Pinecone(api_key=PINECONE_API_KEY)
 index = pinecone_client.Index("pinecone-index-vector-storage-2")
 
 # Prepare the data for upload (embedding vectors + metadata)
-# Assuming my embeddings are in a list of tuples [(id, vector), ...]
+# Assuming embeddings are a list of vectors and sentences are a list of corresponding metadata
 upsert_data = []
-for i, embedding in enumerate(embeddings):
-    # Creating a unique ID for each embedding (e.g., based on player name)
-    player_id = f"player_{i}"  # Customize this as needed.
-    upsert_data.append((player_id, embedding))
+for i, (embedding, sentence) in enumerate(zip(embeddings, sentences)):
+    # Creating a unique ID for each embedding
+    player_id = f"player_{i}"
+    # Adding metadata (e.g., sentence text)
+    metadata = {"sentence": sentence}
+    upsert_data.append((player_id, embedding, metadata))
 
 # Upload the data to Pinecone
 index.upsert(vectors=upsert_data)
 
-print("Data uploaded to Pinecone successfully.")
-
+print("Data with sentences uploaded to Pinecone successfully.")
