@@ -161,7 +161,7 @@ def query_to_natural_language(results):
     
     response = "Here are the results:\n"
     for idx, record in enumerate(results, start=1):
-        response += f"{idx}. {record}\n"
+        response += f"{idx}. {record['p.name']} plays for {record['t.name']} with a salary of {record['r.salary']}\n"
     return response.strip()
 
 # Main function to handle querying both databases
