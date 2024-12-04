@@ -35,7 +35,7 @@ def query_neo4j(cypher_query):
         result = session.run(cypher_query)
         return [record.data() for record in result]
 
-def natural_language_to_cypher(nl_query):
+def nl_to_neoquery(nl_query):
     """
     Converts a natural language query to a Cypher query using Google Generative AI.
     """
@@ -84,25 +84,32 @@ def query_to_natural_language(results):
         response += f"{idx}. {record}\n"
     return response.strip()
 
-if __name__ == "__main__":
-    # Example natural language query
+def answer():
+    """
+    Main function that processes the natural language query,
+    converts it to Cypher, fetches the results, and returns the response.
+    """
     nl_query = input("Enter your query in natural language: ")
-    
+
     try:
-        # Convert NL to Cypher query
-        cypher_query = natural_language_to_cypher(nl_query)
+        # Convert NL to Cypher query using the nl_to_neoquery function
+        cypher_query = nl_to_neoquery(nl_query)
         print(f"Generated Cypher Query: {cypher_query}")
-        
+
         # Validate the query
         cypher_query = validate_query(cypher_query)
         print(f"Validated Cypher Query: {cypher_query}")
-        
+
         # Query Neo4j
         results = query_neo4j(cypher_query)
-        
+
         # Convert results to natural language
         natural_language_response = query_to_natural_language(results)
         print(natural_language_response)
-    
+
     except Exception as e:
         print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    # Call the answer function
+    answer()
