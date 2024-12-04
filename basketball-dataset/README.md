@@ -1,10 +1,26 @@
+List of queries
+------------------
+ho are the top 5 players in NBA
+The top 5 players based on the salary property
+Show the top 5 NBA players based on their salary and their associated teams.
+
+Which NBA teams has LeBron James played for?
+
+List all coaches who have coached multiple NBA teams.
+What is the team composition of the Golden State Warriors in the 2019 season?
+Find the list of NBA players who have won MVP awards in the last 5 years.
+Show me the game stats for the most recent NBA Finals
+Which NBA players have played for both the Boston Celtics and the Los Angeles Lakers
+What are the career statistics for Kobe Bryant?
+
 Workflow
+-------
 Task 1: Data Preparation and Querying
 1. Populate Neo4j
     Import the data into Neo4j using the players_and_teams.cypher file. This will populate your Neo4j database with player, team, coach, and game performance data.
 
 2. Fetch Data
-   Use the fetch_data.py script (under the src folder) to fetch data from Neo4j and process it:
+   Use the fetch_data.py script (under the src folder) to fetch data from Neo4j and process it:(fetch all data from neo4j db)
    Transform and group the data.
    Save the grouped data to output/grouped_data.pkl.
 3. Generate Sentences
